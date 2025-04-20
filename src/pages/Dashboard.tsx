@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,18 +39,22 @@ const Dashboard = () => {
     // Load dashboard data
     loadDashboardData();
     
-    // Set up event listener for storage changes (course enrollments or test completions)
+    // Listen for both regular storage events (other tabs) and custom storage-updated event (current tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'enrolledCourses' || e.key === null) {
+        console.log("Storage changed, reloading dashboard data");
+        loadDashboardData();
+      }
+    };
+    
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage-updated', loadDashboardData);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage-updated', loadDashboardData);
     };
   }, [isLoggedIn, navigate]);
-  
-  const handleStorageChange = () => {
-    console.log("Storage changed, reloading dashboard data");
-    loadDashboardData();
-  };
   
   const loadDashboardData = () => {
     try {
@@ -63,16 +66,29 @@ const Dashboard = () => {
         const storedCourses = JSON.parse(storedCoursesString);
         console.log("Dashboard loaded courses:", storedCourses);
         
+        // Make sure we have unique courses (by string ID)
+        const uniqueCourses = storedCourses.reduce((acc: any[], current: any) => {
+          const courseId = String(current.id);
+          const existingIndex = acc.findIndex(item => String(item.id) === courseId);
+          
+          if (existingIndex === -1) {
+            acc.push({...current, id: courseId});
+          } else {
+            acc[existingIndex] = {...acc[existingIndex], ...current, id: courseId};
+          }
+          return acc;
+        }, []);
+        
         // Calculate metrics
-        const enrolled = storedCourses.length;
-        const completed = storedCourses.filter((course) => course.hasTakenTest).length;
+        const enrolled = uniqueCourses.length;
+        const completed = uniqueCourses.filter((course) => course.hasTakenTest).length;
         
         // Calculate total refund and average test score
         let totalRefundAmount = 0;
         let totalScoreSum = 0;
         let testsTaken = 0;
         
-        storedCourses.forEach((course) => {
+        uniqueCourses.forEach((course) => {
           if (course.hasTakenTest && course.testScore !== null) {
             // Get course price
             const coursePrice = course.price || 0;
@@ -106,7 +122,7 @@ const Dashboard = () => {
         const activities = [];
         
         // Add test completions
-        const testCompletions = storedCourses
+        const testCompletions = uniqueCourses
           .filter((course) => course.hasTakenTest)
           .map((course) => ({
             icon: FileText,
@@ -117,7 +133,7 @@ const Dashboard = () => {
           }));
         
         // Add course enrollments
-        const enrollments = storedCourses.map((course) => ({
+        const enrollments = uniqueCourses.map((course) => ({
           icon: Book,
           title: "Enrolled in Course",
           subtitle: course.title,
@@ -125,7 +141,7 @@ const Dashboard = () => {
         }));
         
         // Add refund information
-        const refunds = storedCourses
+        const refunds = uniqueCourses
           .filter((course) => course.hasTakenTest)
           .map((course) => ({
             icon: PiggyBank,
@@ -160,11 +176,6 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
-
-  // Also update when the component is mounted
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">

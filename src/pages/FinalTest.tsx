@@ -426,7 +426,8 @@ const FinalTest = () => {
       
       // Update the course with test results
       const updatedCourses = storedCourses.map((course: any) => {
-        if (course.id === courseId) {
+        // Convert to string for comparison to ensure consistency
+        if (String(course.id) === String(courseId)) {
           return {
             ...course,
             hasTakenTest: true,
@@ -441,8 +442,18 @@ const FinalTest = () => {
       // Save the updated courses back to localStorage
       localStorage.setItem('enrolledCourses', JSON.stringify(updatedCourses));
       
-      // Dispatch a storage event to notify other tabs/components
-      window.dispatchEvent(new Event('storage'));
+      // Dispatch both standard storage event (for other tabs) and a custom event (for current tab)
+      window.dispatchEvent(new Event('storage-updated'));
+      
+      // Also try to trigger storage event for other tabs
+      // Note: This doesn't work in the same tab, hence the custom event above
+      const storageEvent = new StorageEvent('storage', {
+        key: 'enrolledCourses',
+        newValue: JSON.stringify(updatedCourses),
+        oldValue: storedCoursesString,
+        storageArea: localStorage
+      });
+      window.dispatchEvent(storageEvent);
       
       toast({
         title: "Test completed!",

@@ -33,7 +33,33 @@ const MyCourses = () => {
       try {
         const parsedCourses = JSON.parse(storedCourses);
         console.log("Loaded enrolled courses:", parsedCourses);
-        setEnrolledCourses(parsedCourses);
+        
+        // Fix for duplicate entries - ensure each course has a unique string ID
+        const uniqueCourses = parsedCourses.reduce((acc: EnrolledCourse[], current: any) => {
+          // Convert number IDs to strings
+          const courseId = String(current.id);
+          const existingIndex = acc.findIndex(item => String(item.id) === courseId);
+          
+          if (existingIndex === -1) {
+            // Add new course with string ID
+            acc.push({
+              ...current,
+              id: courseId
+            });
+          } else {
+            // Merge with existing course, preserving test data
+            acc[existingIndex] = {
+              ...acc[existingIndex],
+              ...current,
+              id: courseId,
+              hasTakenTest: current.hasTakenTest || acc[existingIndex].hasTakenTest,
+              testScore: current.testScore || acc[existingIndex].testScore
+            };
+          }
+          return acc;
+        }, []);
+        
+        setEnrolledCourses(uniqueCourses);
       } catch (error) {
         console.error("Error parsing enrolled courses:", error);
         toast({
@@ -50,10 +76,20 @@ const MyCourses = () => {
     loadEnrolledCourses();
     
     // Add event listener for storage events (when test is completed in another tab)
-    window.addEventListener('storage', loadEnrolledCourses);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'enrolledCourses' || e.key === null) {
+        loadEnrolledCourses();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom storage events dispatched within the same window
+    window.addEventListener('storage-updated', loadEnrolledCourses);
     
     return () => {
-      window.removeEventListener('storage', loadEnrolledCourses);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage-updated', loadEnrolledCourses);
     };
   }, []);
 
