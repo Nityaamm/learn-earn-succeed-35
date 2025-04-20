@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { FileText, Book, Award, PiggyBank, Layout } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { isLoggedIn, userInfo } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // State for dashboard data
   const [enrolledCoursesCount, setEnrolledCoursesCount] = React.useState(0);
@@ -19,6 +21,7 @@ const Dashboard = () => {
   const [totalRefund, setTotalRefund] = React.useState(0);
   const [avgTestScore, setAvgTestScore] = React.useState(0);
   const [recentActivity, setRecentActivity] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
   
   // Chart data state
   const [chartData, setChartData] = React.useState([
@@ -46,27 +49,30 @@ const Dashboard = () => {
   }, [isLoggedIn, navigate]);
   
   const handleStorageChange = () => {
+    console.log("Storage changed, reloading dashboard data");
     loadDashboardData();
   };
   
   const loadDashboardData = () => {
     try {
+      setLoading(true);
       // Get enrolled courses from localStorage
       const storedCoursesString = localStorage.getItem('enrolledCourses');
       
       if (storedCoursesString) {
         const storedCourses = JSON.parse(storedCoursesString);
+        console.log("Dashboard loaded courses:", storedCourses);
         
         // Calculate metrics
         const enrolled = storedCourses.length;
-        const completed = storedCourses.filter((course: any) => course.hasTakenTest).length;
+        const completed = storedCourses.filter((course) => course.hasTakenTest).length;
         
         // Calculate total refund and average test score
         let totalRefundAmount = 0;
         let totalScoreSum = 0;
         let testsTaken = 0;
         
-        storedCourses.forEach((course: any) => {
+        storedCourses.forEach((course) => {
           if (course.hasTakenTest && course.testScore !== null) {
             // Get course price
             const coursePrice = course.price || 0;
@@ -101,8 +107,8 @@ const Dashboard = () => {
         
         // Add test completions
         const testCompletions = storedCourses
-          .filter((course: any) => course.hasTakenTest)
-          .map((course: any) => ({
+          .filter((course) => course.hasTakenTest)
+          .map((course) => ({
             icon: FileText,
             title: "Completed Final Test",
             subtitle: course.title,
@@ -111,7 +117,7 @@ const Dashboard = () => {
           }));
         
         // Add course enrollments
-        const enrollments = storedCourses.map((course: any) => ({
+        const enrollments = storedCourses.map((course) => ({
           icon: Book,
           title: "Enrolled in Course",
           subtitle: course.title,
@@ -120,8 +126,8 @@ const Dashboard = () => {
         
         // Add refund information
         const refunds = storedCourses
-          .filter((course: any) => course.hasTakenTest)
-          .map((course: any) => ({
+          .filter((course) => course.hasTakenTest)
+          .map((course) => ({
             icon: PiggyBank,
             title: "Refund Processed",
             subtitle: course.title,
@@ -145,8 +151,20 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Also update when the component is mounted
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -165,97 +183,105 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[
-            { icon: Book, title: "Enrolled Courses", value: enrolledCoursesCount },
-            { icon: Award, title: "Completed Courses", value: completedCoursesCount },
-            { icon: FileText, title: "Average Test Score", value: `${avgTestScore}%` },
-            { icon: PiggyBank, title: "Total Refund", value: `₹${totalRefund.toFixed(2)}` }
-          ].map((item, index) => (
-            <Card key={index} className="glass hover-scale hover-glow animate-scale-in">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {item.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <item.icon className="h-5 w-5 text-primary mr-2" />
-                  <div className="text-2xl font-bold">{item.value}</div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 glass hover-glow">
-            <CardHeader>
-              <CardTitle>Progress Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-2 glass hover-glow">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0 transition-all duration-200 hover:bg-white/5 p-4 rounded-lg">
-                      <div className="rounded-full bg-primary/10 p-2">
-                        <activity.icon className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{activity.title}</p>
-                        <p className="text-sm text-muted-foreground">{activity.subtitle}</p>
-                        {activity.detail && (
-                          <p className="text-sm text-muted-foreground">{activity.detail}</p>
-                        )}
-                      </div>
-                      <div className="ml-auto text-sm text-muted-foreground">
-                        {activity.time}
-                      </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <p>Loading your dashboard...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[
+                { icon: Book, title: "Enrolled Courses", value: enrolledCoursesCount },
+                { icon: Award, title: "Completed Courses", value: completedCoursesCount },
+                { icon: FileText, title: "Average Test Score", value: `${avgTestScore}%` },
+                { icon: PiggyBank, title: "Total Refund", value: `₹${totalRefund.toFixed(2)}` }
+              ].map((item, index) => (
+                <Card key={index} className="glass hover-scale hover-glow animate-scale-in">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {item.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <item.icon className="h-5 w-5 text-primary mr-2" />
+                      <div className="text-2xl font-bold">{item.value}</div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No recent activity</p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate("/courses")} 
-                      className="mt-4"
-                    >
-                      Browse Courses
-                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1 glass hover-glow">
+                <CardHeader>
+                  <CardTitle>Progress Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2 glass hover-glow">
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((activity, index) => (
+                        <div key={index} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0 transition-all duration-200 hover:bg-white/5 p-4 rounded-lg">
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <activity.icon className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{activity.title}</p>
+                            <p className="text-sm text-muted-foreground">{activity.subtitle}</p>
+                            {activity.detail && (
+                              <p className="text-sm text-muted-foreground">{activity.detail}</p>
+                            )}
+                          </div>
+                          <div className="ml-auto text-sm text-muted-foreground">
+                            {activity.time}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No recent activity</p>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => navigate("/courses")} 
+                          className="mt-4"
+                        >
+                          Browse Courses
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </main>
       <Footer />
     </div>

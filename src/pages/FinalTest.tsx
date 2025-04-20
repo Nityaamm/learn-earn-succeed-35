@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -425,7 +426,7 @@ const FinalTest = () => {
       
       // Update the course with test results
       const updatedCourses = storedCourses.map((course: any) => {
-        if (course.id === parseInt(courseId)) {
+        if (course.id === courseId) {
           return {
             ...course,
             hasTakenTest: true,
@@ -435,10 +436,12 @@ const FinalTest = () => {
         return course;
       });
       
+      console.log("Updated courses after test:", updatedCourses);
+      
       // Save the updated courses back to localStorage
       localStorage.setItem('enrolledCourses', JSON.stringify(updatedCourses));
       
-      // Dispatch a storage event to notify other tabs
+      // Dispatch a storage event to notify other tabs/components
       window.dispatchEvent(new Event('storage'));
       
       toast({
