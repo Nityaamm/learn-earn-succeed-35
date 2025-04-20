@@ -6,7 +6,6 @@ import HowItWorks from '@/components/HowItWorks';
 import FeaturedCourses from '@/components/FeaturedCourses';
 import Testimonials from '@/components/Testimonials';
 import Footer from '@/components/Footer';
-import ChatbotButton from '@/components/ChatBot/ChatbotButton';
 
 const Index = () => {
   return (
@@ -18,7 +17,6 @@ const Index = () => {
         <FeaturedCourses />
         <Testimonials />
       </main>
-      <ChatbotButton />
       <Footer />
     </div>
   );
