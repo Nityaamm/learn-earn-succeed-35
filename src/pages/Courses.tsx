@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -28,7 +29,7 @@ const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 200]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -318,18 +319,18 @@ const Courses = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Price Range</label>
+                  <label className="text-sm font-medium mb-2 block">Price Range (₹)</label>
                   <div className="pt-4 px-2">
                     <Slider 
-                      defaultValue={[0, 200]} 
-                      max={200} 
-                      step={5} 
+                      defaultValue={[0, 10000]} 
+                      max={10000} 
+                      step={500} 
                       value={priceRange}
                       onValueChange={setPriceRange}
                     />
                     <div className="flex justify-between mt-2 text-sm">
-                      <span>${priceRange[0]}</span>
-                      <span>${priceRange[1]}</span>
+                      <span>₹{priceRange[0]}</span>
+                      <span>₹{priceRange[1]}</span>
                     </div>
                   </div>
                 </div>
@@ -341,7 +342,7 @@ const Courses = () => {
                     setSearchTerm("");
                     setSelectedCategory("all");
                     setSelectedLevel("all");
-                    setPriceRange([0, 200]);
+                    setPriceRange([0, 10000]);
                   }}
                 >
                   Reset Filters
