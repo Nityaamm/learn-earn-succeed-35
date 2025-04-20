@@ -32,17 +32,15 @@ const Courses = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Sample categories
   const categories = ["Programming", "Web Development", "Data Science", "Design", "Marketing", "Business"];
   const levels = ["Beginner", "Intermediate", "Advanced"];
 
-  // Updated course data with consistent information and materials
   const allCourses: Course[] = [
     {
       id: "1",
       title: "Python Programming Fundamentals",
       description: "Learn the basics of Python programming language and build your first applications.",
-      price: 99.99,
+      price: 6999,
       category: "Programming",
       level: "Beginner",
       image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=600",
@@ -67,7 +65,7 @@ const Courses = () => {
       id: "2",
       title: "Web Development Bootcamp",
       description: "Master HTML, CSS, and JavaScript to create modern and responsive websites.",
-      price: 149.99,
+      price: 8499,
       category: "Web Development",
       level: "Intermediate",
       image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&q=80&w=600",
@@ -92,7 +90,7 @@ const Courses = () => {
       id: "3",
       title: "Data Science with R",
       description: "Analyze data, create visualizations, and build predictive models using R.",
-      price: 129.99,
+      price: 7499,
       category: "Data Science",
       level: "Advanced",
       image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=600",
@@ -117,7 +115,7 @@ const Courses = () => {
       id: "4",
       title: "UI/UX Design Principles",
       description: "Learn the fundamentals of user interface and user experience design.",
-      price: 89.99,
+      price: 5999,
       category: "Design",
       level: "Beginner",
       image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=600",
@@ -142,7 +140,7 @@ const Courses = () => {
       id: "5",
       title: "Digital Marketing Strategy",
       description: "Develop comprehensive digital marketing strategies for business growth.",
-      price: 119.99,
+      price: 6499,
       category: "Marketing",
       level: "Intermediate",
       image: "https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80&w=600",
@@ -167,7 +165,7 @@ const Courses = () => {
       id: "6",
       title: "Machine Learning Fundamentals",
       description: "Introduction to machine learning algorithms and their applications.",
-      price: 149.99,
+      price: 9999,
       category: "Data Science",
       level: "Advanced",
       image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&q=80&w=600",
@@ -187,13 +185,11 @@ const Courses = () => {
           content: "Learn how to apply machine learning to real-world problems in fields like finance, healthcare, and marketing." 
         }
       ]
-    },
+    }
   ];
 
-  // Function to handle course enrollment
   const handleEnrollCourse = (course: Course) => {
     try {
-      // Get current enrolled courses
       const storedCoursesString = localStorage.getItem('enrolledCourses');
       let storedCourses = [];
       
@@ -201,7 +197,6 @@ const Courses = () => {
         storedCourses = JSON.parse(storedCoursesString);
       }
       
-      // Check if already enrolled
       const isAlreadyEnrolled = storedCourses.some(
         (enrolledCourse: any) => enrolledCourse.id === course.id
       );
@@ -215,7 +210,6 @@ const Courses = () => {
         return;
       }
       
-      // Add course to enrolled courses
       const courseToAdd = {
         id: course.id,
         title: course.title,
@@ -230,7 +224,6 @@ const Courses = () => {
       storedCourses.push(courseToAdd);
       localStorage.setItem('enrolledCourses', JSON.stringify(storedCourses));
       
-      // Trigger storage event for other tabs
       window.dispatchEvent(new Event('storage'));
       
       toast({
@@ -239,7 +232,6 @@ const Courses = () => {
         variant: "default"
       });
       
-      // Navigate to my courses
       navigate("/my-courses");
     } catch (error) {
       console.error("Error enrolling in course:", error);
@@ -251,7 +243,6 @@ const Courses = () => {
     }
   };
 
-  // Filter courses based on search and filters
   const filteredCourses = allCourses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                       course.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -275,7 +266,6 @@ const Courses = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters sidebar */}
           <div className="space-y-6">
             <div className="bg-card rounded-lg border p-4">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -360,7 +350,6 @@ const Courses = () => {
             </div>
           </div>
 
-          {/* Course listings */}
           <div className="lg:col-span-3">
             {filteredCourses.length === 0 ? (
               <div className="text-center py-12">

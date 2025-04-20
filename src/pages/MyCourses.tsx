@@ -1,302 +1,107 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, BookOpen, Award } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
+import { Award, Book, FileText } from "lucide-react";
 
-// Moved outside to be accessible by all related functions
-const courseMaterials = {
-  "1": [
-    { 
-      title: "Python Basics", 
-      content: "Python is a high-level, interpreted programming language known for its readability and versatility. This section covers variables, data types, and basic syntax." 
-    },
-    { 
-      title: "Control Flow", 
-      content: "Learn about if statements, loops, and conditional expressions to control the flow of your Python programs." 
-    },
-    { 
-      title: "Functions and Modules", 
-      content: "Discover how to write reusable code blocks with functions and organize your code into modules." 
-    }
-  ],
-  "2": [
-    { 
-      title: "HTML Fundamentals", 
-      content: "HTML provides the structure for web pages. Learn about tags, attributes, and how to create well-formed HTML documents." 
-    },
-    { 
-      title: "CSS Styling", 
-      content: "CSS allows you to style your HTML elements. Explore selectors, properties, and how to create responsive designs." 
-    },
-    { 
-      title: "JavaScript Basics", 
-      content: "JavaScript adds interactivity to websites. Learn about variables, functions, DOM manipulation, and event handling." 
-    }
-  ],
-  "3": [
-    { 
-      title: "R Introduction", 
-      content: "R is a programming language designed for statistical computing and graphics. Learn the basics of R syntax and data structures." 
-    },
-    { 
-      title: "Data Manipulation", 
-      content: "Discover how to clean, transform, and analyze data using R packages like dplyr and tidyr." 
-    },
-    { 
-      title: "Data Visualization", 
-      content: "Create compelling visualizations with ggplot2 and other R plotting libraries to communicate insights effectively." 
-    }
-  ],
-  "4": [
-    { 
-      title: "Design Principles", 
-      content: "Understand fundamental design principles like contrast, repetition, alignment, and proximity that form the foundation of good UI/UX." 
-    },
-    { 
-      title: "User Research", 
-      content: "Learn techniques for gathering user feedback, creating personas, and understanding user needs and behaviors." 
-    },
-    { 
-      title: "Prototyping", 
-      content: "Explore tools and methods for creating wireframes and interactive prototypes to test your designs before implementation." 
-    }
-  ],
-  "5": [
-    { 
-      title: "Marketing Fundamentals", 
-      content: "Learn core marketing concepts including target audience, positioning, and creating a marketing strategy." 
-    },
-    { 
-      title: "Social Media Marketing", 
-      content: "Discover how to leverage social media platforms for brand building, customer engagement, and driving conversions." 
-    },
-    { 
-      title: "Analytics and Optimization", 
-      content: "Learn how to measure campaign performance, analyze data, and optimize your marketing efforts for better results." 
-    }
-  ],
-  "6": [
-    { 
-      title: "Introduction to ML", 
-      content: "Understand the core concepts of machine learning, including supervised vs. unsupervised learning and model evaluation." 
-    },
-    { 
-      title: "Classification Algorithms", 
-      content: "Explore popular classification algorithms like decision trees, random forests, and support vector machines." 
-    },
-    { 
-      title: "Neural Networks", 
-      content: "Learn about artificial neural networks, backpropagation, and how deep learning is revolutionizing AI applications." 
-    }
-  ]
-};
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  progress?: string;
+  hasTakenTest?: boolean;
+  testScore?: number;
+  image: string;
+  category: string;
+}
 
 const MyCourses = () => {
-  const { isLoggedIn } = useAuth();
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [selectedCourse, setSelectedCourse] = React.useState<number | null>(null);
-  const [enrolledCourses, setEnrolledCourses] = React.useState([]);
 
-  React.useEffect(() => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    
-    // Load enrolled courses from localStorage
+  useEffect(() => {
+    const loadEnrolledCourses = () => {
+      const storedCourses = localStorage.getItem('enrolledCourses');
+      if (storedCourses) {
+        try {
+          setEnrolledCourses(JSON.parse(storedCourses));
+        } catch (error) {
+          console.error("Error parsing enrolled courses:", error);
+        }
+      }
+    };
+
     loadEnrolledCourses();
-    
-    // Set up a storage event listener to handle updates from other tabs
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', loadEnrolledCourses);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', loadEnrolledCourses);
     };
-  }, [isLoggedIn, navigate]);
+  }, []);
 
-  const handleStorageChange = (e) => {
-    if (e.key === 'enrolledCourses') {
-      loadEnrolledCourses();
-    }
+  const handleTestClick = (courseId: string) => {
+    navigate(`/courses/${courseId}/test`);
   };
-  
-  const loadEnrolledCourses = () => {
-    try {
-      // Get stored courses
-      const storedCourses = localStorage.getItem('enrolledCourses');
-      let courses = [];
-      
-      if (storedCourses) {
-        const parsedCourses = JSON.parse(storedCourses);
-        
-        // Map the stored courses to include the additional fields and proper materials
-        courses = parsedCourses.map((course) => {
-          // Get course materials based on course ID
-          const materials = courseMaterials[course.id] || [
-            { 
-              title: "Course Introduction", 
-              content: "Welcome to the course! This is an introduction to the main concepts you'll be learning." 
-            },
-            { 
-              title: "Getting Started", 
-              content: "In this section, we'll set up your learning environment and prepare for the course material." 
-            }
-          ];
-          
-          return {
-            ...course,
-            materials,
-            hasTakenTest: course.hasTakenTest || false,
-            testScore: course.testScore || null,
-            progress: course.progress || "0%"
-          };
-        });
-      } else {
-        // Default to empty array if nothing is stored
-        courses = [];
-      }
-      
-      setEnrolledCourses(courses);
-    } catch (error) {
-      console.error("Error loading enrolled courses:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your enrolled courses",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const courseData = selectedCourse !== null 
-    ? enrolledCourses.find(course => course.id === selectedCourse) 
-    : null;
-
-  if (selectedCourse !== null && courseData) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedCourse(null)} 
-            className="mb-4"
-          >
-            Back to My Courses
-          </Button>
-          
-          <h1 className="text-3xl font-bold mb-2">{courseData.title}</h1>
-          <p className="text-muted-foreground mb-6">{courseData.description}</p>
-          
-          <div className="space-y-6">
-            {courseData.materials.map((material, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    {material.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{material.content}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="mt-8 flex flex-col items-center">
-            <Card className="w-full max-w-md text-center">
-              <CardHeader>
-                <CardTitle>Ready for the Final Test?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Complete the test to measure your understanding. Your performance will determine your refund amount - score 90% and get a 90% refund!
-                </p>
-              </CardContent>
-              <CardFooter className="flex justify-center">
-                {courseData.hasTakenTest ? (
-                  <div className="text-center">
-                    <div className="mb-2 flex items-center justify-center gap-2">
-                      <Award className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Your Test Score: {courseData.testScore}%</span>
-                    </div>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={() => navigate(`/courses/${courseData.id}/test`)}
-                    className="w-full max-w-xs"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Take Final Test
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">My Enrolled Courses</h1>
+      <main className="flex-1 container px-4 md:px-6 py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">My Courses</h1>
+          <p className="text-muted-foreground">Track your progress and take final tests</p>
+        </div>
+
         {enrolledCourses.length === 0 ? (
           <div className="text-center py-12">
-            <h2 className="text-xl font-medium mb-2">No courses enrolled yet</h2>
-            <p className="text-muted-foreground mb-6">Browse our catalog and enroll in a course to get started</p>
+            <h2 className="text-xl font-semibold mb-4">No courses enrolled yet</h2>
             <Button onClick={() => navigate("/courses")}>Browse Courses</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrolledCourses.map((course) => (
-              <Card key={course.id} className="flex flex-col glass hover-scale hover-glow">
+              <Card key={course.id} className="flex flex-col">
+                <div className="aspect-video w-full overflow-hidden">
+                  <img
+                    src={course.image}
+                    alt={course.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
                 <CardHeader>
                   <CardTitle>{course.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Progress: {course.progress}
-                    </p>
-                    {course.hasTakenTest && course.testScore !== null && (
-                      <div className="flex items-center gap-2">
-                        <Award className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-medium">Test Score: {course.testScore}%</p>
-                      </div>
-                    )}
+                  <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Progress</span>
+                      <span>{course.progress || "0%"}</span>
+                    </div>
+                    <Progress value={parseInt(course.progress || "0")} />
                   </div>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-2">
-                  <Button
-                    onClick={() => setSelectedCourse(course.id)}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    View Course Materials
-                  </Button>
+                <CardFooter className="border-t pt-4">
                   {course.hasTakenTest ? (
-                    <div className="w-full text-center p-2 bg-muted rounded-md">
-                      <div className="flex items-center justify-center gap-2">
-                        <Award className="h-4 w-4 text-primary" />
-                        <span>Final Score: {course.testScore}%</span>
+                    <div className="w-full text-center space-y-2">
+                      <div className="flex items-center justify-center gap-2 text-primary">
+                        <Award className="h-5 w-5" />
+                        <span className="font-semibold">Test Score: {course.testScore}%</span>
                       </div>
+                      <p className="text-sm text-muted-foreground">
+                        Refund Earned: ₹{((course.testScore || 0) / 100 * course.price).toFixed(2)}
+                      </p>
                     </div>
                   ) : (
-                    <Button
-                      onClick={() => navigate(`/courses/${course.id}/test`)}
+                    <Button 
+                      onClick={() => handleTestClick(course.id)} 
                       className="w-full"
+                      variant="outline"
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Take Final Test
